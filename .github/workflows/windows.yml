@@ -1,0 +1,39 @@
+name: Windows
+
+on: [ push, pull_request ]
+
+env:
+  BUILD_TYPE: Release
+  VCPKG_DEFAULT_TRIPLET: x64-windows
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup vcpkg
+        uses: friendlyanon/setup-vcpkg@v1
+        with: { committish: 6f7ffeb18f99796233b958aaaf14ec7bd4fb64b2 }
+
+      - name: Install dependencies
+        run: ${{env.VCPKG_ROOT}}/vcpkg install catch2 fmt
+
+      - name: Configure
+        run: >
+          cmake
+          -B ${{github.workspace}}/build
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          -DCMAKE_TOOLCHAIN_FILE="${{env.VCPKG_ROOT}}/scripts/buildsystems/vcpkg.cmake"
+          -G "Visual Studio 17 2022"
+          -A x64
+
+      - name: Build
+        working-directory: ${{github.workspace}}/build
+        run: cmake --build . --config Release
+
+      - name: Test
+        working-directory: ${{github.workspace}}/build
+        run: ctest --extra-verbose -C ${{env.BUILD_TYPE}}

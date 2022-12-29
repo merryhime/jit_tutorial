@@ -1,0 +1,46 @@
+name: linux
+
+on: [ push, pull_request ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install ninja
+        run: sudo apt-get install ninja-build
+
+      - name: Install Catch2 v3
+        run: |
+          git clone https://github.com/catchorg/Catch2.git
+          cd Catch2
+          cmake -Bbuild -H. -DBUILD_TESTING=OFF
+          sudo cmake --build build/ --target install
+
+      - name: Install fmt v9
+        run: |
+          git clone https://github.com/fmtlib/fmt
+          cd fmt
+          cmake -Bbuild -H. -DFMT_TEST=OFF
+          sudo cmake --build build/ --target install
+
+      - name: Configure
+        run: >
+          cmake
+          -B ${{github.workspace}}/build
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+          -G Ninja
+
+      - name: Build
+        working-directory: ${{github.workspace}}/build
+        run: cmake --build . --config Release
+
+      - name: Test
+        working-directory: ${{github.workspace}}/build
+        run: ctest --extra-verbose -C ${{env.BUILD_TYPE}}
